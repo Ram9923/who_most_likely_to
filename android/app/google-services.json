@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "361948538536",
+    "firebase_url": "https://who-s-most-likely-to-3f557-default-rtdb.firebaseio.com",
+    "project_id": "who-s-most-likely-to-3f557",
+    "storage_bucket": "who-s-most-likely-to-3f557.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:361948538536:android:e5111f4270b82b7475c49d",
+        "android_client_info": {
+          "package_name": "com.example.who_most_likely_to"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "361948538536-l5dmdcr8rqunq6uuoshbstjelmh0c3b5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBypHiZ86NLWpo8M9qp_3Re0mx1_aw8Irg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "361948538536-l5dmdcr8rqunq6uuoshbstjelmh0c3b5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "361948538536-2sur1hoqgbek04sn1ioj3g67sd3f7hrn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.whoMostLikelyTo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
