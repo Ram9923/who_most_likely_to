@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:who_most_likely_to/screens/HomeScreen.dart';
 import 'package:who_most_likely_to/screens/GameRoomScreen.dart';
+import 'package:who_most_likely_to/screens/CategorySelectionScreen.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
 
@@ -9,6 +10,8 @@ class ResultsScreen extends StatelessWidget {
   final Map<String, int> playerScores;
   final String categoryName;
   final String? roomId;
+  final List<String>? externalPeople;
+  final Map<String, int>? externalPersonScores;
 
   const ResultsScreen({
     super.key,
@@ -16,6 +19,8 @@ class ResultsScreen extends StatelessWidget {
     required this.playerScores,
     required this.categoryName,
     this.roomId,
+    this.externalPeople,
+    this.externalPersonScores,
   });
 
   Future<void> _resetGameState(BuildContext context) async {
@@ -52,138 +57,294 @@ class ResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sort players by scores (descending)
-    List<String> sortedPlayers = List.from(players);
-    sortedPlayers.sort(
-      (a, b) => (playerScores[b] ?? 0).compareTo(playerScores[a] ?? 0),
-    );
+    // Combine player scores and external person scores for sorting
+    Map<String, int> allScores = {...playerScores};
+    if (externalPersonScores != null) {
+      allScores.addAll(externalPersonScores!);
+    }
+
+    // Sort by score (highest first)
+    List<MapEntry<String, int>> sortedScores =
+        allScores.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Game Results'),
-        automaticallyImplyLeading: false,
+        title: Text('Game Results'),
+        backgroundColor: Colors.purple,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TweenAnimationBuilder(
-              tween: Tween<double>(begin: 0, end: 1),
-              duration: const Duration(seconds: 1),
-              builder: (context, double value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 20 * (1 - value)),
-                    child: child,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Final Scores',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Category: $categoryName',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              },
-              child: Text(
-                '$categoryName Results',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Final Tally - Who\'s Most Likely To...',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 30),
-            Expanded(
-              child: ListView.builder(
-                itemCount: sortedPlayers.length,
-                itemBuilder: (context, index) {
-                  String player = sortedPlayers[index];
-                  int score = playerScores[player] ?? 0;
+              SizedBox(height: 20),
+              // Display scores
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Rankings',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: sortedScores.length,
+                        itemBuilder: (context, index) {
+                          final entry = sortedScores[index];
+                          final isPlayer = players.contains(entry.key);
+                          final isExternal =
+                              externalPeople?.contains(entry.key) ?? false;
 
-                  return TweenAnimationBuilder(
-                    tween: Tween<double>(begin: 0, end: 1),
-                    duration: const Duration(milliseconds: 400),
-                    builder: (context, double value, child) {
-                      return Opacity(
-                        opacity: value,
-                        child: Transform.translate(
-                          offset: Offset(50 * (1 - value), 0),
-                          child: child,
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isPlayer
+                                            ? Colors.purple.withOpacity(0.2)
+                                            : Colors.orange.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: TextStyle(
+                                        color:
+                                            isPlayer
+                                                ? Colors.purple
+                                                : Colors.orange,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        entry.key,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (isExternal)
+                                        Text(
+                                          'External Person',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.orange,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '${entry.value} point${entry.value > 1 ? 's' : ''}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.purple,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: SoundButton(
+                      soundType: 'click',
+                      onPressed: () {
+                        if (roomId != null) {
+                          if (roomId == 'local_mode') {
+                            // For local mode, go back to category selection
+                            // and preserve the external people list
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => CategorySelectionScreen(
+                                      players: players,
+                                      preserveExternalPeople: externalPeople,
+                                    ),
+                              ),
+                              (route) => false,
+                            );
+                          } else {
+                            // For online mode, go back to room
+                            _resetGameState(context).then((_) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          GameRoomScreen(roomId: roomId!),
+                                ),
+                              );
+                            });
+                          }
+                        } else {
+                          // For local mode without external voting, go back to category selection
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) =>
+                                      CategorySelectionScreen(players: players),
+                            ),
+                            (route) => false,
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        padding: EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                    },
-                    child: Card(
-                      elevation: index == 0 ? 8 : 4,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      color: index == 0 ? Colors.yellow[100] : Colors.white,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(player[0].toUpperCase()),
+                      ),
+                      child: Text(
+                        roomId == 'local_mode' || roomId == null
+                            ? 'Play Again'
+                            : 'Back to Room',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        title: Text(player),
-                        trailing: Text(
-                          '$score votes',
-                          style: const TextStyle(
-                            fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  if (roomId != null && roomId != 'local_mode') ...[
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: SoundButton(
+                        soundType: 'click',
+                        onPressed: () {
+                          _deleteRoom().then((_) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => HomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Leave Room',
+                          style: TextStyle(
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ),
-                  );
-                },
+                  ],
+                  if (roomId == 'local_mode' || roomId == null) ...[
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: SoundButton(
+                        soundType: 'click',
+                        onPressed: () {
+                          // When going back to home screen, we don't preserve the external people list
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => HomeScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          'Back to Home',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                SoundButton(
-                  soundType: 'click',
-                  onPressed: () async {
-                    if (roomId != null) {
-                      await _resetGameState(context);
-                    }
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                  ),
-                  child: const Text('Play Again'),
-                ),
-                SoundButton(
-                  soundType: 'click',
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HomeScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                  ),
-                  child: const Text('Back to Home'),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

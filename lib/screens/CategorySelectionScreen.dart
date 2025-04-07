@@ -4,11 +4,58 @@ import 'package:flutter/material.dart';
 import 'TurnBasedGameScreen.dart';
 import 'package:who_most_likely_to/constants/game_categories.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
+import 'ExternalVotingGameScreen.dart';
 
-class CategorySelectionScreen extends StatelessWidget {
+class CategorySelectionScreen extends StatefulWidget {
   final List<String> players;
+  final List<String>? preserveExternalPeople;
 
-  const CategorySelectionScreen({super.key, required this.players});
+  const CategorySelectionScreen({
+    super.key,
+    required this.players,
+    this.preserveExternalPeople,
+  });
+
+  @override
+  _CategorySelectionScreenState createState() =>
+      _CategorySelectionScreenState();
+}
+
+class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
+  bool useExternalVoting = false;
+  List<String> externalPeople = [];
+  final TextEditingController _externalPersonController =
+      TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize external people list if provided
+    if (widget.preserveExternalPeople != null) {
+      externalPeople = List.from(widget.preserveExternalPeople!);
+    }
+  }
+
+  @override
+  void dispose() {
+    _externalPersonController.dispose();
+    super.dispose();
+  }
+
+  void _addExternalPerson() {
+    if (_externalPersonController.text.trim().isNotEmpty) {
+      setState(() {
+        externalPeople.add(_externalPersonController.text.trim());
+        _externalPersonController.clear();
+      });
+    }
+  }
+
+  void _removeExternalPerson(int index) {
+    setState(() {
+      externalPeople.removeAt(index);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +96,97 @@ class CategorySelectionScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
+              // External Voting Toggle
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.people_outline, color: Colors.purple),
+                          SizedBox(width: 10),
+                          Text(
+                            'External Voting',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'Allow players to vote for people not playing the game',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 10),
+                      Switch(
+                        value: useExternalVoting,
+                        onChanged: (value) {
+                          setState(() {
+                            useExternalVoting = value;
+                          });
+                        },
+                        activeColor: Colors.purple,
+                      ),
+                      if (useExternalVoting) ...[
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _externalPersonController,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter name of external person',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            IconButton(
+                              icon: Icon(
+                                Icons.add_circle,
+                                color: Colors.purple,
+                              ),
+                              onPressed: _addExternalPerson,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        if (externalPeople.isNotEmpty)
+                          Text(
+                            'External People:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        SizedBox(height: 5),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children:
+                              externalPeople.asMap().entries.map((entry) {
+                                return Chip(
+                                  label: Text(entry.value),
+                                  deleteIcon: Icon(Icons.close, size: 18),
+                                  onDeleted:
+                                      () => _removeExternalPerson(entry.key),
+                                  backgroundColor: Colors.purple.withOpacity(
+                                    0.2,
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
               // Display category buttons
               Container(
                 height: 400, // Fixed height for category selector
@@ -60,32 +198,66 @@ class CategorySelectionScreen extends StatelessWidget {
                       categories: categories,
                       onSelectCategory: (categoryKey) {
                         final category = categories[categoryKey]!;
-                        Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder:
-                                (context, animation, secondaryAnimation) =>
-                                    TurnBasedGameScreen(
-                                      players: players,
-                                      questions: List<String>.from(
-                                        category['questions'],
+
+                        // Navigate to appropriate screen based on external voting setting
+                        if (useExternalVoting) {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      ExternalVotingGameScreen(
+                                        players: widget.players,
+                                        questions: List<String>.from(
+                                          category['questions'],
+                                        ),
+                                        categoryName: category['name'],
+                                        categoryColor: category['color'],
+                                        roomId: 'local_mode',
+                                        currentUserUid: 'local_user',
+                                        externalPeople: externalPeople,
                                       ),
-                                      categoryName: category['name'],
-                                      categoryColor: category['color'],
-                                    ),
-                            transitionsBuilder: (
-                              context,
-                              animation,
-                              secondaryAnimation,
-                              child,
-                            ) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              );
-                            },
-                          ),
-                        );
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                );
+                              },
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      TurnBasedGameScreen(
+                                        players: widget.players,
+                                        questions: List<String>.from(
+                                          category['questions'],
+                                        ),
+                                        categoryName: category['name'],
+                                        categoryColor: category['color'],
+                                      ),
+                              transitionsBuilder: (
+                                context,
+                                animation,
+                                secondaryAnimation,
+                                child,
+                              ) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                );
+                              },
+                            ),
+                          );
+                        }
                       },
                     ),
                   ),
