@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:who_most_likely_to/screens/GameRoomScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class HostGameScreen extends StatefulWidget {
   const HostGameScreen({super.key});
@@ -19,7 +20,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
     if (roomIdController.text.isEmpty || passwordController.text.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Please fill in All fields")));
+      ).showSnackBar(SnackBar(content: Text("Please fill in All fields".tr())));
       return;
     }
     final roomId = roomIdController.text;
@@ -83,9 +84,9 @@ class _HostGameScreenState extends State<HostGameScreen> {
         print("Host UID: ${currentUser.uid}");
 
         // Successfully created the room
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Room created successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Room created successfully!'.tr())),
+        );
 
         // Navigate to the next screen or host the game
         Navigator.push(
@@ -104,14 +105,14 @@ class _HostGameScreenState extends State<HostGameScreen> {
       // Handle error if user is not signed in
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: User not signed in')));
+      ).showSnackBar(SnackBar(content: Text('Error: User not signed in'.tr())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Room')),
+      appBar: AppBar(title: Text('Create Room'.tr())),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -128,7 +129,7 @@ class _HostGameScreenState extends State<HostGameScreen> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: createRoom, // Call the function to create the room
-              child: Text('Create Room'),
+              child: Text('Create Room'.tr()),
             ),
           ],
         ),

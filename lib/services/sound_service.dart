@@ -9,7 +9,7 @@ class SoundService {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isSoundEnabled = true;
-  bool _isWeb = kIsWeb;
+  final bool _isWeb = kIsWeb;
 
   bool get isSoundEnabled => _isSoundEnabled;
 
@@ -24,7 +24,7 @@ class SoundService {
     }
 
     // Pre-load sound files to ensure they're available
-    _preloadSounds();
+    // _preloadSounds();
   }
 
   // Pre-load all sound files to ensure they're available

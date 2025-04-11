@@ -1,14 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:who_most_likely_to/screens/GameRoomScreen.dart';
+import 'package:who_most_likely_to/constants/game_categories.dart';
+import 'package:who_most_likely_to/widgets/sound_button.dart';
 import 'TurnBasedGameScreen.dart'; // Same screen used in local mode
-
+import 'package:easy_localization/easy_localization.dart';
 class CategorySelectionScreenOnline extends StatelessWidget {
   final String roomCode;
   final bool isHost;
 
-  const CategorySelectionScreenOnline({super.key, required this.roomCode, required this.isHost});
+  const CategorySelectionScreenOnline({
+    super.key,
+    required this.roomCode,
+    required this.isHost,
+  });
 
-// Define different question categories
+  // Define different question categories
   final Map<String, Map<String, dynamic>> categories = const {
     'fun': {
       'name': 'Fun & Casual',
@@ -160,11 +167,17 @@ class CategorySelectionScreenOnline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Select Category')),
+      appBar: AppBar(title: Text('Select Category'.tr())),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('rooms').doc(roomCode).snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('rooms')
+                .doc(roomCode)
+                .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           final roomData = snapshot.data!.data() as Map<String, dynamic>;
           final selectedKey = roomData['selectedCategory'];
@@ -176,20 +189,15 @@ class CategorySelectionScreenOnline extends StatelessWidget {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => TurnBasedGameScreen(
-                    players: List<String>.from(roomData['players']),
-                    questions: List<String>.from(selected!['questions']),
-                    categoryName: selected['name'],
-                    categoryColor: selected['color'],
-                  ),
+                  builder: (context) => GameRoomScreen(roomId: roomCode),
                 ),
               );
             });
           }
 
           if (!isHost) {
-            return const Center(
-              child: Text("Waiting for host to pick a question pack..."),
+            return  Center(
+              child: Text("Waiting for host to pick a question pack...".tr()),
             );
           }
 
@@ -221,17 +229,27 @@ class CategorySelectionScreenOnline extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(category['icon'], size: 40, color: category['color']),
+                        Icon(
+                          category['icon'],
+                          size: 40,
+                          color: category['color'],
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           category['name'],
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           category['description'],
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),

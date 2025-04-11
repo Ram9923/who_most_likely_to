@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:who_most_likely_to/screens/ResultsScreen.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
+import 'package:who_most_likely_to/utils/localization_helper.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class TurnBasedGameScreen extends StatefulWidget {
   final List<String> players;
-  final List<String> questions;
-  final String categoryName;
+  final List<Map<String, String>> questions;
+  final Map<String, String> categoryName;
   final Color categoryColor;
 
   const TurnBasedGameScreen({
@@ -31,7 +33,8 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
   bool showingResults = false;
   late AnimationController _animationController;
   late Animation<double> _animation;
-  late List<String> shuffledQuestions;
+  late List<Map<String, String>> shuffledQuestions;
+
   @override
   void initState() {
     super.initState();
@@ -45,7 +48,10 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
     }
 
     // Initialize votes for first question
-    String firstQuestion = shuffledQuestions[currentQuestionIndex];
+    String firstQuestion = getLocalizedQuestion(
+      context,
+      shuffledQuestions[currentQuestionIndex],
+    );
     questionVotes[firstQuestion] = [];
     playerVotes[firstQuestion] = {};
 
@@ -70,7 +76,10 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
 
   void voteForPlayer(String votedPlayer) {
     setState(() {
-      String currentQuestion = shuffledQuestions[currentQuestionIndex];
+      String currentQuestion = getLocalizedQuestion(
+        context,
+        shuffledQuestions[currentQuestionIndex],
+      );
       questionVotes[currentQuestion]!.add(votedPlayer);
       playerVotes[currentQuestion]![widget.players[currentPlayerTurn]] =
           votedPlayer;
@@ -111,7 +120,10 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
         showingResults = false;
 
         // Initialize votes for next question
-        String nextQuestion = shuffledQuestions[currentQuestionIndex];
+        String nextQuestion = getLocalizedQuestion(
+          context,
+          shuffledQuestions[currentQuestionIndex],
+        );
         questionVotes[nextQuestion] = [];
         playerVotes[nextQuestion] = {};
 
@@ -126,7 +138,7 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
                 (context, animation, secondaryAnimation) => ResultsScreen(
                   players: widget.players,
                   playerScores: playerScores,
-                  categoryName: widget.categoryName,
+                  categoryName: Map<String, String>.from(widget.categoryName),
                 ),
             transitionsBuilder: (
               context,
@@ -144,11 +156,14 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
 
   @override
   Widget build(BuildContext context) {
-    String currentQuestion = shuffledQuestions[currentQuestionIndex];
+    String currentQuestion = getLocalizedQuestion(
+      context,
+      shuffledQuestions[currentQuestionIndex],
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.categoryName),
+        title: Text(getLocalizedText(context, widget.categoryName)),
         backgroundColor: widget.categoryColor,
       ),
       body: Padding(
@@ -205,8 +220,8 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
 
             // If showing results for current question
             if (showingResults) ...[
-              const Text(
-                'Results for this question:',
+              Text(
+                'Results for this question:'.tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
@@ -309,8 +324,8 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
                     const SizedBox(width: 8),
                     Text(
                       currentQuestionIndex < widget.questions.length - 1
-                          ? 'Next Question'
-                          : 'See Final Results',
+                          ? 'Next Question'.tr()
+                          : 'See Final Results'.tr(),
                       style: const TextStyle(fontSize: 18),
                     ),
                   ],
@@ -326,8 +341,8 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Who do you think is most likely to...',
+              Text(
+                'Who do you think is most likely to...'.tr(),
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 20),
@@ -372,8 +387,8 @@ class _TurnBasedGameScreenState extends State<TurnBasedGameScreen>
                   },
                 ),
               ),
-              const Text(
-                'After voting, pass the phone to the next player',
+              Text(
+                'After voting, pass the phone to the next player'.tr(),
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
             ],

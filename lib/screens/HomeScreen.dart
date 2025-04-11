@@ -1,15 +1,31 @@
 // ignore_for_file: file_names
 
 import 'package:flutter/material.dart';
-import 'package:who_most_likely_to/services/firebase_service.dart';
-import 'package:who_most_likely_to/theme.dart'; // Import your theme.dart file
+import 'package:who_most_likely_to/services/firebase_service.dart'; // Import your theme.dart file
 import 'dart:math';
 import 'PlayerSetupScreen.dart';
 import 'DisplayNameScreen.dart';
 import 'package:provider/provider.dart';
 import 'package:who_most_likely_to/providers/theme_provider.dart';
+import 'package:who_most_likely_to/providers/language_provider.dart';
 import 'package:who_most_likely_to/widgets/sound_toggle_button.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
+import 'package:easy_localization/easy_localization.dart';
+
+class TranslatedText extends StatelessWidget {
+  final String keyName;
+  final TextStyle? style;
+
+  const TranslatedText(this.keyName, {super.key, this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      keyName.tr(), // Translate using EasyLocalization
+      style: style, // Apply the style if provided
+    );
+  }
+}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,6 +33,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,6 +46,59 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               themeProvider.toggleTheme();
             },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+            child: Row(
+              children: [
+                Text(
+                  'عربي',
+                  style: TextStyle(
+                    fontWeight:
+                        languageProvider.isArabic
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                    color:
+                        (themeProvider.isDarkMode
+                            ? (languageProvider.isArabic
+                                ? Colors.white
+                                : Colors.grey)
+                            : (languageProvider.isArabic
+                                ? Colors.purple
+                                : Colors.grey)),
+                  ),
+                ),
+                Switch(
+                  value: !languageProvider.isArabic,
+                  onChanged: (value) {
+                    languageProvider.toggleLanguage(context);
+                  },
+                  activeColor: Colors.purple,
+                  activeTrackColor: Colors.purple.withOpacity(0.5),
+                  inactiveThumbColor: Colors.purple,
+                  inactiveTrackColor: Colors.purple.withOpacity(0.5),
+                  trackOutlineColor: MaterialStateProperty.all(Colors.purple),
+                ),
+
+                Text(
+                  'EN',
+                  style: TextStyle(
+                    fontWeight:
+                        !languageProvider.isArabic
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                    color:
+                        (themeProvider.isDarkMode
+                            ? (!languageProvider.isArabic
+                                ? Colors.white
+                                : Colors.grey)
+                            : (!languageProvider.isArabic
+                                ? Colors.purple
+                                : Colors.grey)),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SoundToggleButton(),
         ],
@@ -70,14 +140,14 @@ class HomeScreen extends StatelessWidget {
                     ),
                   );
                 },
-                child: const Text(
-                  'Welcome to Who\'s Most Likely To!',
+                child: Text(
+                  'Welcome'.tr(),
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'A fun party game to play with friends',
+              Text(
+                'A fun party game to play with friends'.tr(),
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 60),
@@ -113,7 +183,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const Text('Local', style: TextStyle(fontSize: 18)),
+                  child: Text('Local'.tr(), style: TextStyle(fontSize: 18)),
                 ),
               ),
               const SizedBox(height: 30),
@@ -159,13 +229,15 @@ class HomeScreen extends StatelessWidget {
                     } else {
                       // Optional: Show error to user
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Failed to join. Please try again.'),
+                        SnackBar(
+                          content: Text(
+                            'Failed to join. Please try again.'.tr(),
+                          ),
                         ),
                       );
                     }
                   },
-                  child: const Text('Online', style: TextStyle(fontSize: 18)),
+                  child: Text('Online'.tr(), style: TextStyle(fontSize: 18)),
                 ),
               ),
             ],

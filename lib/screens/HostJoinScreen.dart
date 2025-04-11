@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:who_most_likely_to/screens/HostGameScreen.dart';
 import 'package:who_most_likely_to/screens/JoinGameScreen.dart';
 import 'package:who_most_likely_to/theme.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class HostJoinScreen extends StatelessWidget {
   const HostJoinScreen({super.key});
@@ -9,7 +10,7 @@ class HostJoinScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Who\'s Most Likely To')),
+      appBar: AppBar(title: Text('Who\'s Most Likely To'.tr())),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -48,7 +49,7 @@ class HostJoinScreen extends StatelessWidget {
                   );
                 },
                 child: Text(
-                  'Choose Your Role',
+                  'Choose Your Role'.tr(),
                   style: AppTheme.getTitleTextStyle(context),
                 ),
               ),
@@ -86,8 +87,8 @@ class HostJoinScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const Text(
-                    'Host Game',
+                  child:  Text(
+                    'Host Game'.tr(),
                     style: TextStyle(fontSize: 18),
                   ),
                 ),
@@ -126,8 +127,8 @@ class HostJoinScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  child: const Text(
-                    'Join Game',
+                  child:  Text(
+                    'Join Game'.tr(),
                     style: TextStyle(fontSize: 18),
                   ),
                 ),

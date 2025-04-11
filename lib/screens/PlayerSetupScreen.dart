@@ -5,6 +5,7 @@ import 'package:who_most_likely_to/theme.dart'; // Import your theme.dart file
 import 'CategorySelectionScreen.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
 import 'package:who_most_likely_to/widgets/sound_icon_button.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class PlayerSetupScreen extends StatefulWidget {
   const PlayerSetupScreen({super.key});
@@ -20,12 +21,12 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Players')),
+      appBar: AppBar(title: Text('Add Players'.tr())),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text('Who\'s Playing?', style: AppTheme.getTitleTextStyle(context)),
+            Text('Who\'s Playing?'.tr(), style: AppTheme.getTitleTextStyle(context)),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -55,7 +56,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                     }
                   },
                   style: AppTheme.getElevatedButtonStyle(context),
-                  child: const Text('Add'),
+                  child:  Text('Add'.tr()),
                 ),
               ],
             ),
@@ -65,7 +66,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                   players.isEmpty
                       ? Center(
                         child: Text(
-                          'Add at least 2 players to start',
+                          'Add at least 2 players to start'.tr(),
                           style: AppTheme.getBodyTextStyle(
                             context,
                           ).copyWith(color: Colors.grey),
@@ -159,7 +160,7 @@ class _PlayerSetupScreenState extends State<PlayerSetupScreen> {
                       }
                       : () {},
               style: AppTheme.getElevatedButtonStyle(context),
-              child: const Text('Continue'),
+              child: Text('Continue'.tr()),
             ),
           ],
         ),

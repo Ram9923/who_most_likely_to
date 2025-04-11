@@ -8,6 +8,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:who_most_likely_to/constants/game_categories.dart';
 import 'package:who_most_likely_to/screens/SimultaneousGameScreen.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
+import 'package:who_most_likely_to/utils/localization_helper.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class GameRoomScreen extends StatefulWidget {
   final String roomId;
@@ -49,7 +51,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       final roomRef = FirebaseDatabase.instance.ref('rooms/${widget.roomId}');
       _roomSubscription = roomRef.onValue.listen(
         (event) {
-          if (!mounted) return; // Check if widget is still mounted
+          if (!mounted) return;
 
           try {
             final data = event.snapshot.value as Map<dynamic, dynamic>?;
@@ -60,7 +62,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
             final playersData = data['players'];
             final gameStarted = data['gameStarted'] as bool? ?? false;
             final selectedCategoryKey = data['selectedCategory']?.toString();
-            final shuffledQuestions =
+            final shuffledQuestionsData =
                 data['shuffledQuestions'] as List<dynamic>?;
 
             // Handle players data properly
@@ -68,15 +70,21 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
             Map<String, String> displayNames = {};
 
             if (playersData is Map) {
-              // New format: players is a map with UIDs as keys and display names as values
               playersList = playersData.keys.map((v) => v.toString()).toList();
               playersData.forEach((key, value) {
-                displayNames[key.toString()] = value.toString();
+                if (value is String) {
+                  displayNames[key.toString()] = value;
+                } else if (value is Map) {
+                  displayNames[key.toString()] =
+                      value['displayName']?.toString() ??
+                      "Player_${key.toString().length > 4 ? key.toString().substring(0, 4) : key.toString()}";
+                }
               });
             } else if (playersData is List) {
-              // Old format: players is a list of UIDs
               playersList = playersData.map((v) => v.toString()).toList();
             }
+
+            if (!mounted) return;
 
             setState(() {
               roomHostUid = host;
@@ -89,7 +97,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
             if (gameStarted &&
                 currentUserUid != roomHostUid &&
                 selectedCategory != null &&
-                shuffledQuestions != null) {
+                shuffledQuestionsData != null) {
               final category = categories[selectedCategory]!;
 
               // Get display names for all players
@@ -102,15 +110,24 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                       )
                       .toList();
 
+              // Convert shuffled questions data to the correct type
+              List<Map<String, String>> shuffledQuestions =
+                  shuffledQuestionsData
+                      .map((e) => Map<String, String>.from(e as Map))
+                      .toList();
+
+              if (!mounted) return;
+
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder:
                       (context) => SimultaneousGameScreen(
                         players: displayNamesList,
-                        questions:
-                            shuffledQuestions.map((e) => e.toString()).toList(),
-                        categoryName: category['name'],
+                        questions: shuffledQuestions,
+                        categoryName: Map<String, String>.from(
+                          category['name'] as Map,
+                        ),
                         categoryColor: category['color'],
                         roomId: widget.roomId,
                         currentUserUid: currentUserUid!,
@@ -120,22 +137,29 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
             }
           } catch (e) {
             print('Error processing room data: $e');
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+            }
           }
         },
         onError: (error) {
-          if (!mounted) return; // Check if widget is still mounted
           print('Error in room listener: $error');
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: ${error.message}')));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: ${error.toString()}')),
+            );
+          }
         },
       );
     } catch (e) {
-      if (!mounted) return; // Check if widget is still mounted
       print('Error setting up room listener: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
     }
   }
 
@@ -199,7 +223,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       if (selectedCategory == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Please select a category before starting the game'),
+            content: Text(
+              'Please select a category before starting the game'.tr(),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -208,10 +234,14 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
 
       final category = categories[selectedCategory]!;
 
-      // Create shuffled questions
+      // Create shuffled questions with proper type conversion
       final random = Random();
-      final shuffledQuestions = [...List<String>.from(category['questions'])]
-        ..shuffle(random);
+      final List<Map<String, String>> shuffledQuestions =
+          List<Map<String, String>>.from(
+            (category['questions'] as List).map(
+              (q) => Map<String, String>.from(q as Map),
+            ),
+          )..shuffle(random);
 
       // Get display names for all players directly from the room data
       List<String> displayNames =
@@ -223,6 +253,11 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               )
               .toList();
 
+      // Convert category name to mutable map
+      final Map<String, String> categoryNameMap = Map<String, String>.from(
+        category['name'] as Map,
+      );
+
       // Update room state in Firebase
       await FirebaseDatabase.instance.ref('rooms/${widget.roomId}').update({
         'gameStarted': true,
@@ -230,7 +265,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         'gameType': 'simultaneous',
         'currentQuestion': {'index': 0, 'showingResults': false},
         'shuffledQuestions': shuffledQuestions,
-        'lastActive': ServerValue.timestamp, // Update lastActive timestamp
+        'lastActive': ServerValue.timestamp,
       });
 
       // Clear any existing votes
@@ -250,7 +285,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               (context) => SimultaneousGameScreen(
                 players: displayNames,
                 questions: shuffledQuestions,
-                categoryName: category['name'],
+                categoryName: categoryNameMap,
                 categoryColor: category['color'],
                 roomId: widget.roomId,
                 currentUserUid: currentUserUid!,
@@ -260,7 +295,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Only the host can start the game'),
+          content: Text('Only the host can start the game'.tr()),
           backgroundColor: Colors.red,
         ),
       );
@@ -333,7 +368,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'Players in this room:',
+                        'Players in this room:'.tr(),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -345,7 +380,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               ),
               SizedBox(height: 20),
               // Display the list of players with their display names
-              Container(
+              SizedBox(
                 height: 200, // Fixed height for player list
                 child: Card(
                   elevation: 4,
@@ -375,13 +410,13 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   ),
                 ),
                 child: Text(
-                  'Start Game',
+                  'Start Game'.tr(),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
               SizedBox(height: 20),
               // Display category buttons
-              Container(
+              SizedBox(
                 height: 300, // Fixed height for category selector
                 child: Card(
                   elevation: 4,
@@ -416,7 +451,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Selected Category: ${categories[selectedCategory]!['name']}',
+                            'Selected Category: ${getLocalizedCategoryName(context, categories[selectedCategory]!)}',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -453,7 +488,7 @@ class PlayerList extends StatelessWidget {
     if (playerUids.isEmpty) {
       return Center(
         child: Text(
-          'No players in the room yet',
+          'No players in the room yet'.tr(),
           style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
       );
@@ -500,7 +535,7 @@ class CategorySelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Select a Category:',
+          'Select a Category:'.tr(),
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 10),
@@ -549,7 +584,7 @@ class CategorySelector extends StatelessWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          category['name'],
+                          getLocalizedCategoryName(context, category),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight:

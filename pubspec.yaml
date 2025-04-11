@@ -16,6 +16,7 @@ dependencies:
   shared_preferences: ^2.2.2
   provider: ^6.1.1
   audioplayers: ^5.2.1
+  easy_localization: ^3.0.3 # or latest version
 
 
 dev_dependencies:
@@ -29,6 +30,7 @@ flutter:
   
   assets:
     - assets/sounds/
+    - assets/translations/
 
 flutter_launcher_icons:
   android: true

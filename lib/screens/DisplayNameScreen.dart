@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:who_most_likely_to/screens/HostJoinScreen.dart';
 import 'package:who_most_likely_to/theme.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class DisplayNameScreen extends StatefulWidget {
   const DisplayNameScreen({super.key});
@@ -99,7 +100,7 @@ class _DisplayNameScreenState extends State<DisplayNameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enter Your Name'),
+        title:  Text('Enter Your Name'.tr()),
         automaticallyImplyLeading: false,
       ),
       body: Padding(
@@ -109,13 +110,13 @@ class _DisplayNameScreenState extends State<DisplayNameScreen> {
           children: [
             const Icon(Icons.person, size: 100, color: Colors.purple),
             const SizedBox(height: 30),
-            const Text(
-              'What should we call you?',
+            Text(
+              'What should we call you?'.tr(),
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'This name will be displayed to other players',
+            Text(
+              'This name will be displayed to other players'.tr(),
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 30),
@@ -140,7 +141,7 @@ class _DisplayNameScreenState extends State<DisplayNameScreen> {
                   soundType: 'click',
                   onPressed: _saveDisplayName,
                   style: AppTheme.getElevatedButtonStyle(context),
-                  child: const Text('Continue', style: TextStyle(fontSize: 18)),
+                  child:  Text('Continue'.tr(), style: TextStyle(fontSize: 18)),
                 ),
           ],
         ),

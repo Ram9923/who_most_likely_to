@@ -5,6 +5,8 @@ import 'TurnBasedGameScreen.dart';
 import 'package:who_most_likely_to/constants/game_categories.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
 import 'ExternalVotingGameScreen.dart';
+import 'package:who_most_likely_to/utils/localization_helper.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class CategorySelectionScreen extends StatefulWidget {
   final List<String> players;
@@ -61,7 +63,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Category'),
+        title:  Text('Select Category'.tr()),
         backgroundColor: Colors.purple,
       ),
       body: SingleChildScrollView(
@@ -77,7 +79,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                   child: Column(
                     children: [
                       Text(
-                        'Choose a Question Set',
+                        'Choose a Question Set'.tr(),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -85,7 +87,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'Pick a category that matches your group\'s mood',
+                        'Pick a category that matches your group\'s mood'.tr(),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -100,16 +102,16 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
               Card(
                 elevation: 4,
                 child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                       Row(
                         children: [
                           Icon(Icons.people_outline, color: Colors.purple),
                           SizedBox(width: 10),
                           Text(
-                            'External Voting',
+                            'External Voting'.tr(),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -119,7 +121,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'Allow players to vote for people not playing the game',
+                        'Allow players to vote for people not playing the game'.tr(),
                         style: TextStyle(fontSize: 14),
                       ),
                       SizedBox(height: 10),
@@ -136,11 +138,11 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                         SizedBox(height: 10),
                         Row(
                           children: [
-                            Expanded(
+            Expanded(
                               child: TextField(
                                 controller: _externalPersonController,
                                 decoration: InputDecoration(
-                                  hintText: 'Enter name of external person',
+                                  hintText: 'Enter name of external person'.tr(),
                                   border: OutlineInputBorder(),
                                 ),
                               ),
@@ -158,7 +160,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                         SizedBox(height: 10),
                         if (externalPeople.isNotEmpty)
                           Text(
-                            'External People:',
+                            'External People:'.tr(),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -188,7 +190,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
               ),
               SizedBox(height: 20),
               // Display category buttons
-              Container(
+              SizedBox(
                 height: 400, // Fixed height for category selector
                 child: Card(
                   elevation: 4,
@@ -205,18 +207,26 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                             context,
                             PageRouteBuilder(
                               pageBuilder:
-                                  (context, animation, secondaryAnimation) =>
-                                      ExternalVotingGameScreen(
-                                        players: widget.players,
-                                        questions: List<String>.from(
-                                          category['questions'],
-                                        ),
-                                        categoryName: category['name'],
-                                        categoryColor: category['color'],
-                                        roomId: 'local_mode',
-                                        currentUserUid: 'local_user',
-                                        externalPeople: externalPeople,
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                  ) => ExternalVotingGameScreen(
+                                    players: widget.players,
+                                    questions: List<Map<String, String>>.from(
+                                      (category['questions'] as List).map(
+                                        (q) =>
+                                            Map<String, String>.from(q as Map),
                                       ),
+                                    ),
+                                    categoryName: Map<String, String>.from(
+                                      category['name'] as Map,
+                                    ),
+                                    categoryColor: category['color'],
+                                    roomId: 'local_mode',
+                                    currentUserUid: 'local_user',
+                                    externalPeople: externalPeople,
+                                  ),
                               transitionsBuilder: (
                                 context,
                                 animation,
@@ -231,32 +241,40 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                             ),
                           );
                         } else {
-                          Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder:
-                                  (context, animation, secondaryAnimation) =>
-                                      TurnBasedGameScreen(
-                                        players: widget.players,
-                                        questions: List<String>.from(
-                                          category['questions'],
-                                        ),
-                                        categoryName: category['name'],
-                                        categoryColor: category['color'],
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                  ) => TurnBasedGameScreen(
+                                    players: widget.players,
+                                    questions: List<Map<String, String>>.from(
+                                      (category['questions'] as List).map(
+                                        (q) =>
+                                            Map<String, String>.from(q as Map),
                                       ),
-                              transitionsBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                );
-                              },
-                            ),
-                          );
+                                    ),
+                                    categoryName: Map<String, String>.from(
+                                      category['name'] as Map,
+                                    ),
+                                      categoryColor: category['color'],
+                                    ),
+                            transitionsBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            ) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
                         }
                       },
                     ),
@@ -286,9 +304,9 @@ class CategorySelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Select a Category:',
+                            children: [
+                              Text(
+          'Select a Category:'.tr(),
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         SizedBox(height: 10),
@@ -324,7 +342,7 @@ class CategorySelector extends StatelessWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          category['name'],
+                          getLocalizedCategoryName(context, category),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.normal,
@@ -338,13 +356,13 @@ class CategorySelector extends StatelessWidget {
                         size: 16,
                       ),
                     ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
     );
   }
 }

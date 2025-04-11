@@ -7,11 +7,13 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:who_most_likely_to/screens/GameRoomScreen.dart';
 import 'package:who_most_likely_to/widgets/sound_button.dart';
+import 'package:who_most_likely_to/utils/localization_helper.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class SimultaneousGameScreen extends StatefulWidget {
   final List<String> players;
-  final List<String> questions;
-  final String categoryName;
+  final List<Map<String, String>> questions;
+  final Map<String, String> categoryName;
   final Color categoryColor;
   final String roomId;
   final String currentUserUid;
@@ -39,7 +41,7 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
   bool showingResults = false;
   late AnimationController _animationController;
   late Animation<double> _animation;
-  late List<String> shuffledQuestions;
+  late List<Map<String, String>> shuffledQuestions;
   String? currentUserUid;
   StreamSubscription<DatabaseEvent>? _votesSubscription;
   StreamSubscription<DatabaseEvent>? _questionsSubscription;
@@ -52,7 +54,7 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
     super.initState();
     currentUserUid = FirebaseAuth.instance.currentUser!.uid;
 
-    // Initialize player scores
+    // Initialize player scores to 0
     for (var player in widget.players) {
       playerScores[player] = 0;
     }
@@ -117,164 +119,152 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
   }
 
   void _listenToRoomChanges() {
-    final roomRef = FirebaseDatabase.instance.ref('rooms/${widget.roomId}');
+    try {
+      final roomRef = FirebaseDatabase.instance.ref('rooms/${widget.roomId}');
 
-    // Listen to shuffled questions
-    _questionsSubscription = roomRef
-        .child('shuffledQuestions')
-        .onValue
-        .listen(
-          (event) {
-            if (_isDisposed) return;
+      // Add listener for scores
+      roomRef.child('scores').onValue.listen((event) {
+        if (_isDisposed) return;
 
-            try {
-              if (event.snapshot.value != null) {
-                final data = event.snapshot.value as List<dynamic>;
+        try {
+          final data = event.snapshot.value as Map<dynamic, dynamic>?;
+          if (data == null) return;
+
+          setState(() {
+            // Update player scores from Firebase
+            data.forEach((key, value) {
+              playerScores[key.toString()] = (value as num).toInt();
+            });
+            print('Updated player scores from Firebase: $playerScores');
+          });
+        } catch (e) {
+          print('Error processing scores data: $e');
+        }
+      });
+
+      _questionsSubscription = roomRef
+          .child('shuffledQuestions')
+          .onValue
+          .listen(
+            (event) {
+              if (_isDisposed) return;
+
+              try {
+                final data = event.snapshot.value as List<dynamic>?;
+                if (data == null) return;
+
                 setState(() {
-                  shuffledQuestions = data.map((e) => e.toString()).toList();
+                  shuffledQuestions =
+                      data
+                          .map((e) => Map<String, String>.from(e as Map))
+                          .toList();
 
                   // Initialize votes for current question if we have questions
                   if (shuffledQuestions.isNotEmpty) {
-                    String currentQuestion =
-                        shuffledQuestions[currentQuestionIndex];
+                    String currentQuestion = getLocalizedQuestion(
+                      context,
+                      shuffledQuestions[currentQuestionIndex],
+                    );
                     questionVotes[currentQuestion] = [];
                     playerVotes[currentQuestion] = {};
                   }
                 });
+              } catch (e) {
+                print('Error processing questions data: $e');
               }
-            } catch (e) {
-              print('Error in questions listener: $e');
-            }
-          },
-          onError: (error) {
-            print('Error in questions listener: $error');
-          },
-        );
+            },
+            onError: (error) {
+              print('Error in questions listener: $error');
+            },
+          );
 
-    // Listen to current question changes
-    _currentQuestionSubscription = roomRef
-        .child('currentQuestion')
-        .onValue
-        .listen(
-          (event) {
-            if (_isDisposed) return;
+      _currentQuestionSubscription = roomRef
+          .child('currentQuestion')
+          .onValue
+          .listen(
+            (event) {
+              if (_isDisposed) return;
 
-            try {
-              if (event.snapshot.value != null) {
-                final data = event.snapshot.value as Map<dynamic, dynamic>;
+              try {
+                final data = event.snapshot.value as Map<dynamic, dynamic>?;
+                if (data == null) return;
+
+                final index = data['index'] as int? ?? 0;
+                final showingResultsValue =
+                    data['showingResults'] as bool? ?? false;
+
                 setState(() {
-                  currentQuestionIndex = data['index'] as int;
-                  showingResults = data['showingResults'] as bool? ?? false;
+                  currentQuestionIndex = index;
+                  showingResults = showingResultsValue;
 
-                  // Only reset votes for new question, not when showing results
                   if (shuffledQuestions.isNotEmpty && !showingResults) {
-                    String currentQuestion =
-                        shuffledQuestions[currentQuestionIndex];
+                    String currentQuestion = getLocalizedQuestion(
+                      context,
+                      shuffledQuestions[currentQuestionIndex],
+                    );
                     questionVotes[currentQuestion] = [];
                     playerVotes[currentQuestion] = {};
                   }
                 });
+              } catch (e) {
+                print('Error processing current question data: $e');
               }
-            } catch (e) {
-              print('Error in current question listener: $e');
-            }
-          },
-          onError: (error) {
-            print('Error in current question listener: $error');
-          },
-        );
+            },
+            onError: (error) {
+              print('Error in current question listener: $error');
+            },
+          );
 
-    // Listen to votes
-    _votesSubscription = roomRef
-        .child('votes')
-        .onValue
-        .listen(
-          (event) {
-            if (_isDisposed) return;
+      _votesSubscription = roomRef
+          .child('votes')
+          .onValue
+          .listen(
+            (event) {
+              if (_isDisposed) return;
 
-            try {
-              if (event.snapshot.value != null) {
-                final data = event.snapshot.value as Map<dynamic, dynamic>;
-
-                // Store the current votes before updating state
-                Map<String, String> currentVotes = {};
-                data.forEach((key, value) {
-                  currentVotes[key.toString()] = value.toString();
-                });
-
-                // Debug information
-                print('Current votes from Firebase: $currentVotes');
+              try {
+                final data = event.snapshot.value as Map<dynamic, dynamic>?;
+                if (data == null) return;
 
                 setState(() {
                   if (shuffledQuestions.isNotEmpty) {
-                    String currentQuestion =
-                        shuffledQuestions[currentQuestionIndex];
+                    String currentQuestion = getLocalizedQuestion(
+                      context,
+                      shuffledQuestions[currentQuestionIndex],
+                    );
 
                     // Update player votes with the current votes from Firebase
+                    Map<String, String> currentVotes = {};
+                    data.forEach((key, value) {
+                      currentVotes[key.toString()] = value.toString();
+                    });
                     playerVotes[currentQuestion] = currentVotes;
 
-                    // Debug information
-                    print(
-                      'Player votes for current question: ${playerVotes[currentQuestion]}',
-                    );
-                    print(
-                      'Number of votes: ${currentVotes.length}, Number of players: ${widget.players.length}',
-                    );
-
-                    // Check if all players have voted
-                    if (currentVotes.length == widget.players.length) {
-                      // Update player scores for this question
-                      Map<String, int> voteCount = {};
-                      for (var player in widget.players) {
-                        voteCount[player] = 0;
-                      }
-
-                      currentVotes.forEach((_, votedPlayer) {
-                        voteCount[votedPlayer] =
-                            (voteCount[votedPlayer] ?? 0) + 1;
-                      });
-
-                      // Update total scores
-                      voteCount.forEach((player, votes) {
-                        playerScores[player] =
-                            (playerScores[player] ?? 0) + votes;
-                      });
-
-                      // Update Firebase to show results
-                      FirebaseDatabase.instance
-                          .ref('rooms/${widget.roomId}/currentQuestion')
-                          .update({
-                            'showingResults': true,
-                            'resultsTimestamp': ServerValue.timestamp,
-                          });
-                    }
+                    // Update question votes
+                    questionVotes[currentQuestion] =
+                        currentVotes.values.toList();
                   }
                 });
-              } else {
-                // Votes were cleared (new question)
-                setState(() {
-                  if (shuffledQuestions.isNotEmpty) {
-                    String currentQuestion =
-                        shuffledQuestions[currentQuestionIndex];
-                    playerVotes[currentQuestion] = {};
-                    showingResults = false;
-                  }
-                });
+              } catch (e) {
+                print('Error processing votes data: $e');
               }
-            } catch (e) {
-              print('Error in votes listener: $e');
-            }
-          },
-          onError: (error) {
-            print('Error in votes listener: $error');
-          },
-        );
+            },
+            onError: (error) {
+              print('Error in votes listener: $error');
+            },
+          );
+    } catch (e) {
+      print('Error setting up room listeners: $e');
+    }
   }
 
   void voteForPlayer(String votedPlayer) {
     if (showingResults) return;
 
-    String currentQuestion = shuffledQuestions[currentQuestionIndex];
+    String currentQuestion = getLocalizedQuestion(
+      context,
+      shuffledQuestions[currentQuestionIndex],
+    );
 
     // Update Firebase with the vote
     FirebaseDatabase.instance
@@ -308,6 +298,24 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
 
             // Check if all players have voted
             if (playerVotes[currentQuestion]?.length == widget.players.length) {
+              // Count votes for this question
+              Map<String, int> voteCount = {};
+              for (var player in widget.players) {
+                voteCount[player] = 0;
+              }
+
+              // Count votes for each player
+              playerVotes[currentQuestion]!.forEach((voterUid, votedPlayer) {
+                voteCount[votedPlayer] = (voteCount[votedPlayer] ?? 0) + 1;
+              });
+
+              // Update scores in Firebase
+              voteCount.forEach((player, votes) {
+                FirebaseDatabase.instance
+                    .ref('rooms/${widget.roomId}/scores/$player')
+                    .set(ServerValue.increment(votes));
+              });
+
               // Update Firebase to show results
               FirebaseDatabase.instance
                   .ref('rooms/${widget.roomId}/currentQuestion')
@@ -323,46 +331,41 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
         });
   }
 
-  void nextQuestion() {
-    if (!showingResults) return;
-
-    // Reset animation
-    _animationController.reset();
-
+  void _nextQuestion() {
     if (currentQuestionIndex < shuffledQuestions.length - 1) {
-      final nextIndex = currentQuestionIndex + 1;
-
-      // Update Firebase with next question
-      FirebaseDatabase.instance
-          .ref('rooms/${widget.roomId}/currentQuestion')
-          .set({'index': nextIndex, 'showingResults': false});
-
-      // Update lastActive timestamp
-      FirebaseDatabase.instance.ref('rooms/${widget.roomId}').update({
-        'lastActive': ServerValue.timestamp,
+      setState(() {
+        currentQuestionIndex++;
+        showingResults = false;
       });
 
-      // Clear votes for the new question - use remove() instead of set(null)
-      FirebaseDatabase.instance.ref('rooms/${widget.roomId}/votes').remove();
+      // Clear votes for the previous question
+      String previousQuestion = getLocalizedQuestion(
+        context,
+        shuffledQuestions[currentQuestionIndex - 1],
+      );
+      questionVotes.remove(previousQuestion);
+      playerVotes.remove(previousQuestion);
 
-      // Start animation
-      _animationController.forward();
+      // Update Firebase with the new question index and clear votes
+      FirebaseDatabase.instance.ref('rooms/${widget.roomId}').update({
+        'currentQuestion': {
+          'index': currentQuestionIndex,
+          'showingResults': false,
+        },
+        'votes': null, // Clear all votes
+      });
     } else {
       // Game over, show final results
-      // Use pushReplacement to replace the current screen with ResultsScreen
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
-        PageRouteBuilder(
-          pageBuilder:
-              (context, animation, secondaryAnimation) => ResultsScreen(
+        MaterialPageRoute(
+          builder:
+              (context) => ResultsScreen(
                 players: widget.players,
                 playerScores: playerScores,
-                categoryName: widget.categoryName,
+                categoryName: Map<String, String>.from(widget.categoryName),
                 roomId: widget.roomId,
               ),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
         ),
       );
     }
@@ -410,7 +413,7 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
     if (shuffledQuestions.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(widget.categoryName),
+          title: Text(getLocalizedText(context, widget.categoryName)),
           backgroundColor: widget.categoryColor,
         ),
         body: Center(
@@ -426,7 +429,10 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
       );
     }
 
-    String currentQuestion = shuffledQuestions[currentQuestionIndex];
+    String currentQuestion = getLocalizedQuestion(
+      context,
+      shuffledQuestions[currentQuestionIndex],
+    );
     bool hasVoted =
         playerVotes[currentQuestion]?.containsKey(widget.currentUserUid) ??
         false;
@@ -442,7 +448,7 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.categoryName),
+        title: Text(getLocalizedText(context, widget.categoryName)),
         backgroundColor: widget.categoryColor,
       ),
       body: Padding(
@@ -498,8 +504,8 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
             const SizedBox(height: 40),
 
             if (showingResults) ...[
-              const Text(
-                'Results for this question:',
+              Text(
+                'Results for this question:'.tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
@@ -578,7 +584,7 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: SoundButton(
                   soundType: 'click',
-                  onPressed: nextQuestion,
+                  onPressed: _nextQuestion,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: widget.categoryColor,
                     padding: EdgeInsets.symmetric(vertical: 15),
@@ -592,7 +598,7 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
                       Icon(Icons.arrow_forward),
                       SizedBox(width: 8),
                       Text(
-                        'Next Question',
+                        'Next Question'.tr(),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -605,8 +611,8 @@ class _SimultaneousGameScreenState extends State<SimultaneousGameScreen>
             ] else ...[
               Text(
                 hasVoted
-                    ? 'Waiting for other players to vote...'
-                    : 'Who do you think is most likely to...',
+                    ? 'Waiting for other players to vote...'.tr()
+                    : 'Who do you think is most likely to...'.tr(),
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
